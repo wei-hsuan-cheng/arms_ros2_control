@@ -225,13 +225,31 @@ namespace adaptive_gripper_controller
     controller_interface::return_type AdaptiveGripperController::update(
         const rclcpp::Time& /*time*/, const rclcpp::Duration& /*period*/)
     {
+        if (!gripper_interfaces_.position_state_interface_)
+        {
+            RCLCPP_ERROR_THROTTLE(
+                get_node()->get_logger(), *get_node()->get_clock(), 1000,
+                "Position state interface not available for joint %s", joint_name_.c_str());
+            return controller_interface::return_type::ERROR;
+        }
+
         // 读取当前位置
-        const double current_position = gripper_interfaces_.position_state_interface_->get().get_optional().value();
+        auto& position_state = gripper_interfaces_.position_state_interface_->get();
+        const double current_position = position_state.get_value();
 
         // 只在开关控制模式（非直接位置模式）下启用力反馈
         if (!direct_position_mode_ && has_effort_interface_)
         {
-            double current_effort = gripper_interfaces_.effort_state_interface_->get().get_optional().value();
+            if (!gripper_interfaces_.effort_state_interface_)
+            {
+                RCLCPP_ERROR_THROTTLE(
+                    get_node()->get_logger(), *get_node()->get_clock(), 1000,
+                    "Effort state interface requested but not available for joint %s", joint_name_.c_str());
+                return controller_interface::return_type::ERROR;
+            }
+
+            auto& effort_state = gripper_interfaces_.effort_state_interface_->get();
+            const double current_effort = effort_state.get_value();
             if (gripper_target_ == 0 && !force_threshold_triggered_ && std::abs(current_effort) > force_threshold_)
             {
                 // 根据比例参数计算目标位置
@@ -251,12 +269,16 @@ namespace adaptive_gripper_controller
 
 
         // 输出位置命令
-        if (!gripper_interfaces_.position_command_interface_->get().set_value(target_position_))
+        if (!gripper_interfaces_.position_command_interface_)
         {
-            RCLCPP_ERROR(get_node()->get_logger(),
-                         "Failed to set position command value: %.6f", target_position_);
+            RCLCPP_ERROR_THROTTLE(
+                get_node()->get_logger(), *get_node()->get_clock(), 1000,
+                "Position command interface not available for joint %s", joint_name_.c_str());
             return controller_interface::return_type::ERROR;
         }
+
+        auto& position_command = gripper_interfaces_.position_command_interface_->get();
+        position_command.set_value(target_position_);
 
         return controller_interface::return_type::OK;
     }

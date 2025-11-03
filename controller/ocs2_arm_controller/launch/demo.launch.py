@@ -173,7 +173,7 @@ def generate_launch_description():
     # Command-line arguments
     robot_name_arg = DeclareLaunchArgument(
         "robot",
-        default_value="cr5",
+        default_value="cr5", # cr5
         description="Robot name (arx5, cr5, etc.)"
     )
 

@@ -13,7 +13,7 @@ rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn Hardwa
     }
 
     int joint_count = static_cast<int>(info_.joints.size());
-    RCLCPP_INFO(get_logger(), "Found %d joints in configuration", joint_count);
+    RCLCPP_INFO(logger_, "Found %d joints in configuration", joint_count);
     
     joint_torque_command_.assign(joint_count, 0);
     joint_position_command_.assign(joint_count, 0);
@@ -74,7 +74,7 @@ rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn Hardwa
         default_kd_ = std::stod(default_kd_param->second);
     }
 
-    RCLCPP_INFO(get_logger(), " robot_type: %s, network_interface: %s, domain: %d, enable_high_state: %s, default_kp: %f, default_kd: %f", 
+    RCLCPP_INFO(logger_, " robot_type: %s, network_interface: %s, domain: %d, enable_high_state: %s, default_kp: %f, default_kd: %f", 
                 robot_type_.c_str(), network_interface_.c_str(), domain_, enable_high_state_ ? "true" : "false", default_kp_, default_kd_);
 
     initializeCommunicator();
@@ -164,7 +164,7 @@ std::vector<hardware_interface::CommandInterface> HardwareUnitree::export_comman
 return_type HardwareUnitree::read(const rclcpp::Time& /*time*/, const rclcpp::Duration& /*period*/)
 {
     if (!communicator_) {
-        RCLCPP_ERROR(get_logger(), "Communicator not initialized");
+        RCLCPP_ERROR(logger_, "Communicator not initialized");
         return return_type::ERROR;
     }
 
@@ -203,7 +203,7 @@ return_type HardwareUnitree::read(const rclcpp::Time& /*time*/, const rclcpp::Du
         foot_force_[3] = robot_state.foot_force[3];
 
         if (show_foot_force_) {
-            RCLCPP_INFO(get_logger(), "foot_force(): %f, %f, %f, %f", 
+            RCLCPP_INFO(logger_, "foot_force(): %f, %f, %f, %f", 
                        foot_force_[0], foot_force_[1], foot_force_[2], foot_force_[3]);
         }
     }
@@ -223,7 +223,7 @@ return_type HardwareUnitree::read(const rclcpp::Time& /*time*/, const rclcpp::Du
 return_type HardwareUnitree::write(const rclcpp::Time& /*time*/, const rclcpp::Duration& /*period*/)
 {
     if (!communicator_) {
-        RCLCPP_ERROR(get_logger(), "Communicator not initialized");
+        RCLCPP_ERROR(logger_, "Communicator not initialized");
         return return_type::ERROR;
     }
 
@@ -246,7 +246,7 @@ return_type HardwareUnitree::write(const rclcpp::Time& /*time*/, const rclcpp::D
     }
 
     if (!communicator_->writeCommand(command)) {
-        RCLCPP_ERROR(get_logger(), "Failed to write command");
+        RCLCPP_ERROR(logger_, "Failed to write command");
         return return_type::ERROR;
     }
 
@@ -257,13 +257,13 @@ void HardwareUnitree::initializeCommunicator()
 {
     communicator_ = UnitreeCommunicatorFactory::createCommunicator(robot_type_);
     if (!communicator_) {
-        RCLCPP_ERROR(get_logger(), "Failed to create communicator for robot type: %s", robot_type_.c_str());
+        RCLCPP_ERROR(logger_, "Failed to create communicator for robot type: %s", robot_type_.c_str());
         return;
     }
 
     int config_joint_count = static_cast<int>(joint_position_.size());
     communicator_->setJointCount(config_joint_count);
-    RCLCPP_INFO(get_logger(), "Set communicator joint count to: %d", config_joint_count);
+    RCLCPP_INFO(logger_, "Set communicator joint count to: %d", config_joint_count);
 
     // 设置robot_type到communicator（如果是HumanoidCommunicator）
     auto* humanoid_comm = dynamic_cast<HumanoidCommunicator*>(communicator_.get());
@@ -284,12 +284,12 @@ void HardwareUnitree::initializeCommunicator()
     }
     
     if (!init_success) {
-        RCLCPP_ERROR(get_logger(), "Failed to initialize communicator");
+        RCLCPP_ERROR(logger_, "Failed to initialize communicator");
         communicator_.reset();
         return;
     }
 
-    RCLCPP_INFO(get_logger(), "Successfully initialized %s communicator with %d joints", 
+    RCLCPP_INFO(logger_, "Successfully initialized %s communicator with %d joints", 
                 robot_type_.c_str(), config_joint_count);
 }
 
@@ -300,9 +300,9 @@ void HardwareUnitree::exportSensorStateInterfaces(std::vector<hardware_interface
             state_interfaces.emplace_back(
                 imu_sensor.name, imu_sensor.state_interfaces[i].name, &imu_states_[i]);
         }
-        RCLCPP_INFO(get_logger(), "Exported %zu IMU state interfaces", imu_sensor.state_interfaces.size());
+        RCLCPP_INFO(logger_, "Exported %zu IMU state interfaces", imu_sensor.state_interfaces.size());
     } else {
-        RCLCPP_WARN(get_logger(), "IMU sensor not found in configuration");
+        RCLCPP_WARN(logger_, "IMU sensor not found in configuration");
     }
 
     if (communicator_ && communicator_->supportsFootForce()) {
@@ -312,12 +312,12 @@ void HardwareUnitree::exportSensorStateInterfaces(std::vector<hardware_interface
                 state_interfaces.emplace_back(
                     foot_force_sensor.name, foot_force_sensor.state_interfaces[i].name, &foot_force_[i]);
             }
-            RCLCPP_INFO(get_logger(), "Exported %zu foot force state interfaces", foot_force_sensor.state_interfaces.size());
+            RCLCPP_INFO(logger_, "Exported %zu foot force state interfaces", foot_force_sensor.state_interfaces.size());
         } else {
-            RCLCPP_WARN(get_logger(), "Foot force sensor not found in configuration");
+            RCLCPP_WARN(logger_, "Foot force sensor not found in configuration");
         }
     } else {
-        RCLCPP_INFO(get_logger(), "Foot force sensor not supported for robot type: %s", robot_type_.c_str());
+        RCLCPP_INFO(logger_, "Foot force sensor not supported for robot type: %s", robot_type_.c_str());
     }
 
     if (enable_high_state_ && communicator_ && communicator_->supportsHighState()) {
@@ -327,12 +327,12 @@ void HardwareUnitree::exportSensorStateInterfaces(std::vector<hardware_interface
                 state_interfaces.emplace_back(
                     high_state_sensor.name, high_state_sensor.state_interfaces[i].name, &high_states_[i]);
             }
-            RCLCPP_INFO(get_logger(), "Exported %zu high state interfaces", high_state_sensor.state_interfaces.size());
+            RCLCPP_INFO(logger_, "Exported %zu high state interfaces", high_state_sensor.state_interfaces.size());
         } else {
-            RCLCPP_WARN(get_logger(), "High state sensor (odometer) not found in configuration");
+            RCLCPP_WARN(logger_, "High state sensor (odometer) not found in configuration");
         }
     } else {
-        RCLCPP_INFO(get_logger(), "High state sensor disabled or not supported");
+        RCLCPP_INFO(logger_, "High state sensor disabled or not supported");
     }
 }
 
@@ -352,7 +352,7 @@ void HardwareUnitree::initializeCommandsFromFirstData() {
     }
     
     int joint_count = static_cast<int>(joint_position_.size());
-    RCLCPP_INFO(get_logger(), "Initializing commands from first data with %d joints", joint_count);
+    RCLCPP_INFO(logger_, "Initializing commands from first data with %d joints", joint_count);
     
     // 将当前位置设置为初始command值
     for (int i = 0; i < joint_count && i < static_cast<int>(joint_position_command_.size()); ++i) {
@@ -365,7 +365,7 @@ void HardwareUnitree::initializeCommandsFromFirstData() {
     }
     
     command_initialized_ = true;
-    RCLCPP_INFO(get_logger(), "Commands initialized from first data");
+    RCLCPP_INFO(logger_, "Commands initialized from first data");
 }
 
 

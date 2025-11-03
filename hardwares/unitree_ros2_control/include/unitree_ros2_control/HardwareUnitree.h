@@ -1,5 +1,6 @@
 #pragma once
 
+#include <rclcpp/rclcpp.hpp>
 #include "hardware_interface/system_interface.hpp"
 #include "unitree_ros2_control/UnitreeCommunicator.h"
 
@@ -39,6 +40,8 @@ protected:
         {"velocity", {}},
         {"effort", {}}
     };
+
+    rclcpp::Logger logger_{rclcpp::get_logger("HardwareUnitree")};
 
 
     void initializeCommunicator();
